@@ -71,31 +71,45 @@ public class Q19 extends GenericQuery {
 
     @Override
     protected PreparedStatement getStatement(Connection conn, RandomGenerator rand, double scaleFactor) throws SQLException {
-        // QUANTITY1 is randomly selected within [1..10]
-        int quantity1 = rand.number(1, 10);
+        String q19 = """
 
-        // QUANTITY2 is randomly selected within [10..20]
-        int quantity2 = rand.number(10, 20);
+            select
+            	c_name,
+            	c_custkey,
+            	o_orderkey,
+            	o_orderdate,
+            	o_totalprice,
+            	sum(l_quantity)
+            from
+            	customer,
+            	orders,
+            	lineitem
+            where
+            	o_orderkey in (
+            		select
+            			l_orderkey
+            		from
+            			lineitem
+            		group by
+            			l_orderkey having
+            				sum(l_quantity) > 312
+            	)
+            	and c_custkey = o_custkey
+            	and o_orderkey = l_orderkey
+            group by
+            	c_name,
+            	c_custkey,
+            	o_orderkey,
+            	o_orderdate,
+            	o_totalprice
+            order by
+            	o_totalprice desc,
+            	o_orderdate
+            limit 1;
+            """;
 
-        // QUANTITY3 is randomly selected within [20..30]
-        int quantity3 = rand.number(20, 30);
+        PreparedStatement stmt = this.getPreparedStatement(conn, new SQLStmt(q19));
 
-        // BRAND1, BRAND2, BRAND3 = 'Brand#MN' where each MN is a two character string representing two numbers
-        // randomly and independently selected within [1 .. 5]
-        String brand1 = TPCHUtil.randomBrand(rand);
-        String brand2 = TPCHUtil.randomBrand(rand);
-        String brand3 = TPCHUtil.randomBrand(rand);
-
-        PreparedStatement stmt = this.getPreparedStatement(conn, query_stmt);
-        stmt.setString(1, brand1);
-        stmt.setInt(2, quantity1);
-        stmt.setInt(3, quantity1);
-        stmt.setString(4, brand2);
-        stmt.setInt(5, quantity2);
-        stmt.setInt(6, quantity2);
-        stmt.setString(7, brand3);
-        stmt.setInt(8, quantity3);
-        stmt.setInt(9, quantity3);
         return stmt;
     }
 }

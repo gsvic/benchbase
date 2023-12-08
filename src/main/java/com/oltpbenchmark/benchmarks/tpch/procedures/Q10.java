@@ -64,14 +64,42 @@ public class Q10 extends GenericQuery {
 
     @Override
     protected PreparedStatement getStatement(Connection conn, RandomGenerator rand, double scaleFactor) throws SQLException {
-        // DATE is the first day of a randomly selected month from the second month of 1993 to the first month of 1995
-        int year = rand.number(1993, 1995);
-        int month = rand.number(year == 1993 ? 2 : 1, year == 1995 ? 1 : 12);
-        String date = String.format("%d-%02d-01", year, month);
+        String q10 = """
+            select
+            	c_custkey,
+            	c_name,
+            	sum(l_extendedprice * (1 - l_discount)) as revenue,
+            	c_acctbal,
+            	n_name,
+            	c_address,
+            	c_phone,
+            	c_comment
+            from
+            	customer,
+            	orders,
+            	lineitem,
+            	nation
+            where
+            	c_custkey = o_custkey
+            	and l_orderkey = o_orderkey
+            	and o_orderdate >= date '1994-01-01'
+            	and o_orderdate < date '1994-01-01' + interval '3' month
+            	and l_returnflag = 'R'
+            	and c_nationkey = n_nationkey
+            group by
+            	c_custkey,
+            	c_name,
+            	c_acctbal,
+            	c_phone,
+            	n_name,
+            	c_address,
+            	c_comment
+            order by
+            	revenue desc
+            limit 10;
+            """;
 
-        PreparedStatement stmt = this.getPreparedStatement(conn, query_stmt);
-        stmt.setDate(1, Date.valueOf(date));
-        stmt.setDate(2, Date.valueOf(date));
+        PreparedStatement stmt = this.getPreparedStatement(conn, new SQLStmt(q10));
         return stmt;
     }
 }

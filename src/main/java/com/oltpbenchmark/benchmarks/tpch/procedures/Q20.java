@@ -73,21 +73,51 @@ public class Q20 extends GenericQuery {
 
     @Override
     protected PreparedStatement getStatement(Connection conn, RandomGenerator rand, double scaleFactor) throws SQLException {
-        // COLOR is randomly selected within the list of values defined for the generation of P_NAME
-        String color = TPCHUtil.choice(TPCHConstants.P_NAME_GENERATOR, rand) + "%";
+        String q20 = """
 
-        // DATE is the first of January of a randomly selected year within 1993..1997
-        int year = rand.number(1993, 1997);
-        String date = String.format("%d-01-01", year);
+            select
+            	s_name,
+            	s_address
+            from
+            	supplier,
+            	nation
+            where
+            	s_suppkey in (
+            		select
+            			ps_suppkey
+            		from
+            			partsupp
+            		where
+            			ps_partkey in (
+            				select
+            					p_partkey
+            				from
+            					part
+            				where
+            					p_name like 'red%'
+            			)
+            			and ps_availqty > (
+            				select
+            					0.5 * sum(l_quantity)
+            				from
+            					lineitem
+            				where
+            					l_partkey = ps_partkey
+            					and l_suppkey = ps_suppkey
+            					and l_shipdate >= date '1993-01-01'
+            					and l_shipdate < date '1993-01-01' + interval '1' year
+            			)
+            	)
+            	and s_nationkey = n_nationkey
+            	and n_name = 'ALGERIA'
+            order by
+            	s_name
+            limit 1;
 
-        // NATION is randomly selected within the list of values defined for N_NAME in Clause 4.2.3
-        String nation = TPCHUtil.choice(TPCHConstants.N_NAME, rand);
+            """;
 
-        PreparedStatement stmt = this.getPreparedStatement(conn, query_stmt);
-        stmt.setString(1, color);
-        stmt.setDate(2, Date.valueOf(date));
-        stmt.setDate(3, Date.valueOf(date));
-        stmt.setString(4, nation);
+        PreparedStatement stmt = this.getPreparedStatement(conn, new SQLStmt(q20));
+
         return stmt;
     }
 }

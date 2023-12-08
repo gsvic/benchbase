@@ -28,40 +28,59 @@ import java.sql.SQLException;
 public class Q4 extends GenericQuery {
 
     public final SQLStmt query_stmt = new SQLStmt("""
-            SELECT
-               o_orderpriority,
-               COUNT(*) AS order_count
-            FROM
-               orders
-            WHERE
-               o_orderdate >= DATE ?
-               AND o_orderdate < DATE ? + INTERVAL '3' MONTH
-               AND EXISTS
-               (
-                  SELECT
-                     *
-                  FROM
-                     lineitem
-                  WHERE
-                     l_orderkey = o_orderkey
-                     AND l_commitdate < l_receiptdate
-               )
-            GROUP BY
-               o_orderpriority
-            ORDER BY
-               o_orderpriority
+        select
+        	o_orderpriority,
+        	count(*) as order_count
+        from
+        	orders
+        where
+        	o_orderdate >= date '1995-05-01'
+        	and o_orderdate < date '1995-05-01' + interval '3' month
+        	and exists (
+        		select
+        			*
+        		from
+        			lineitem
+        		where
+        			l_orderkey = o_orderkey
+        			and l_commitdate < l_receiptdate
+        	)
+        group by
+        	o_orderpriority
+        order by
+        	o_orderpriority
+        limit 1;
             """
     );
 
     @Override
     protected PreparedStatement getStatement(Connection conn, RandomGenerator rand, double scaleFactor) throws SQLException {
-        int year = rand.number(1993, 1997);
-        int month = rand.number(1, 10);
-        String date = String.format("%d-%02d-01", year, month);
+        String q4 = """
+            select
+            	o_orderpriority,
+            	count(*) as order_count
+            from
+            	orders
+            where
+            	o_orderdate >= date '1995-05-01'
+            	and o_orderdate < date '1995-05-01' + interval '3' month
+            	and exists (
+            		select
+            			*
+            		from
+            			lineitem
+            		where
+            			l_orderkey = o_orderkey
+            			and l_commitdate < l_receiptdate
+            	)
+            group by
+            	o_orderpriority
+            order by
+            	o_orderpriority
+            limit 1;
+            """;
 
-        PreparedStatement stmt = this.getPreparedStatement(conn, query_stmt);
-        stmt.setDate(1, Date.valueOf(date));
-        stmt.setDate(2, Date.valueOf(date));
+        PreparedStatement stmt = this.getPreparedStatement(conn, new SQLStmt(q4));
         return stmt;
     }
 }

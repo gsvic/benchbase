@@ -30,43 +30,62 @@ import java.sql.SQLException;
 public class Q3 extends GenericQuery {
 
     public final SQLStmt query_stmt = new SQLStmt("""
-            SELECT
-               l_orderkey,
-               SUM(l_extendedprice * (1 - l_discount)) AS revenue,
-               o_orderdate,
-               o_shippriority
-            FROM
-               customer,
-               orders,
-               lineitem
-            WHERE
-               c_mktsegment = ?
-               AND c_custkey = o_custkey
-               AND l_orderkey = o_orderkey
-               AND o_orderdate < DATE ?
-               AND l_shipdate > DATE ?
-            GROUP BY
-               l_orderkey,
-               o_orderdate,
-               o_shippriority
-            ORDER BY
-               revenue DESC,
-               o_orderdate LIMIT 10
+            select
+                l_orderkey,
+                sum(l_extendedprice * (1 - l_discount)) as revenue,
+                o_orderdate,
+                o_shippriority
+            from
+                customer,
+                orders,
+                lineitem
+            where
+                c_mktsegment = 'MACHINERY'
+                and c_custkey = o_custkey
+                and l_orderkey = o_orderkey
+                and o_orderdate < date '1995-03-16'
+                and l_shipdate > date '1995-03-16'
+            group by
+                l_orderkey,
+                o_orderdate,
+                o_shippriority
+            order by
+                revenue desc,
+                o_orderdate
+            limit 10;
             """
     );
 
     @Override
     protected PreparedStatement getStatement(Connection conn, RandomGenerator rand, double scaleFactor) throws SQLException {
-        String segment = TPCHUtil.choice(TPCHConstants.SEGMENTS, rand);
+        String q3 = """
 
-        // date must be randomly selected between [1995-03-01, 1995-03-31]
-        int day = rand.number(1, 31);
-        String date = String.format("1995-03-%02d", day);
+            select
+            	l_orderkey,
+            	sum(l_extendedprice * (1 - l_discount)) as revenue,
+            	o_orderdate,
+            	o_shippriority
+            from
+            	customer,
+            	orders,
+            	lineitem
+            where
+            	c_mktsegment = 'MACHINERY'
+            	and c_custkey = o_custkey
+            	and l_orderkey = o_orderkey
+            	and o_orderdate < date '1995-03-16'
+            	and l_shipdate > date '1995-03-16'
+            group by
+            	l_orderkey,
+            	o_orderdate,
+            	o_shippriority
+            order by
+            	revenue desc,
+            	o_orderdate
+            limit 10;
 
-        PreparedStatement stmt = this.getPreparedStatement(conn, query_stmt);
-        stmt.setString(1, segment);
-        stmt.setDate(2, Date.valueOf(date));
-        stmt.setDate(3, Date.valueOf(date));
+            """;
+        PreparedStatement stmt = this.getPreparedStatement(conn, new SQLStmt(q3));
         return stmt;
     }
 }

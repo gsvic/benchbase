@@ -42,22 +42,19 @@ public class Q6 extends GenericQuery {
 
     @Override
     protected PreparedStatement getStatement(Connection conn, RandomGenerator rand, double scaleFactor) throws SQLException {
-        // DATE is the first of January of a randomly selected year within [1993 .. 1997]
-        int year = rand.number(1993, 1997);
-        String date = String.format("%d-01-01", year);
-
-        // DISCOUNT is randomly selected within [0.02 .. 0.09]
-        String discount = String.format("0.0%d", rand.number(2, 9));
-
-        // QUANTITY is randomly selected within [24 .. 25]
-        int quantity = rand.number(24, 25);
-
-        PreparedStatement stmt = this.getPreparedStatement(conn, query_stmt);
-        stmt.setDate(1, Date.valueOf(date));
-        stmt.setDate(2, Date.valueOf(date));
-        stmt.setString(3, discount);
-        stmt.setString(4, discount);
-        stmt.setInt(5, quantity);
+        String q6 = """
+        select
+            sum(l_extendedprice * l_discount) as revenue
+        from
+            lineitem
+        where
+            l_shipdate >= date '1996-01-01'
+            and l_shipdate < date '1996-01-01' + interval '1' year
+            and l_discount between 0.09 - 0.01 and 0.09 + 0.01
+            and l_quantity < 25
+        limit 1;
+            """;
+        PreparedStatement stmt = this.getPreparedStatement(conn, new SQLStmt(q6));
         return stmt;
     }
 }

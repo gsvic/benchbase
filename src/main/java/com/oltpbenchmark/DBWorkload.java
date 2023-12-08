@@ -57,6 +57,8 @@ public class DBWorkload {
      * @throws Exception
      */
     public static void main(String[] args) throws Exception {
+        //args = new String[]{"-b", "tpch", "-c", "config/postgres/sample_tpch_config.xml", "--execute=true"};
+
 
         // create the command line parser
         CommandLineParser parser = new DefaultParser();

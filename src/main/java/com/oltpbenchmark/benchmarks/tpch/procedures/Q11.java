@@ -59,16 +59,39 @@ public class Q11 extends GenericQuery {
 
     @Override
     protected PreparedStatement getStatement(Connection conn, RandomGenerator rand, double scaleFactor) throws SQLException {
-        // NATION is randomly selected within the list of values defined for N_NAME in Clause 4.2.3
-        String nation = TPCHUtil.choice(TPCHConstants.N_NAME, rand);
+        String q11 = """
 
-        // FRACTION is chosen as 0.0001 / SF
-        double fraction = 0.0001 / scaleFactor;
+            select
+            	ps_partkey,
+            	sum(ps_supplycost * ps_availqty) as value
+            from
+            	partsupp,
+            	supplier,
+            	nation
+            where
+            	ps_suppkey = s_suppkey
+            	and s_nationkey = n_nationkey
+            	and n_name = 'MOZAMBIQUE'
+            group by
+            	ps_partkey having
+            		sum(ps_supplycost * ps_availqty) > (
+            			select
+            				sum(ps_supplycost * ps_availqty) * 0.0001000000
+            			from
+            				partsupp,
+            				supplier,
+            				nation
+            			where
+            				ps_suppkey = s_suppkey
+            				and s_nationkey = n_nationkey
+            				and n_name = 'MOZAMBIQUE'
+            		)
+            order by
+            	value desc
+            limit 1;
+            """;
+        PreparedStatement stmt = this.getPreparedStatement(conn, new SQLStmt(q11));
 
-        PreparedStatement stmt = this.getPreparedStatement(conn, query_stmt);
-        stmt.setString(1, nation);
-        stmt.setDouble(2, fraction);
-        stmt.setString(3, nation);
         return stmt;
     }
 }

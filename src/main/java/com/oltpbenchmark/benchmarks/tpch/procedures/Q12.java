@@ -71,25 +71,41 @@ public class Q12 extends GenericQuery {
 
     @Override
     protected PreparedStatement getStatement(Connection conn, RandomGenerator rand, double scaleFactor) throws SQLException {
-        // SHIPMODE1 is randomly selected within the list of values defined for Modes in Clause 4.2.2.13
-        String shipMode1 = TPCHUtil.choice(TPCHConstants.MODES, rand);
+        String q12 = """
 
-        // SHIPMODE2 is randomly selected within the list of values defined for Modes in Clause 4.2.2.13 and must be
-        // different from the value selected for SHIPMODE1 in item 1
-        String shipMode2 = shipMode1;
-        while (shipMode1.equals(shipMode2)) {
-            shipMode2 = TPCHUtil.choice(TPCHConstants.MODES, rand);
-        }
+                select
+                	l_shipmode,
+                	sum(case
+                		when o_orderpriority = '1-URGENT'
+                			or o_orderpriority = '2-HIGH'
+                			then 1
+                		else 0
+                	end) as high_line_count,
+                	sum(case
+                		when o_orderpriority <> '1-URGENT'
+                			and o_orderpriority <> '2-HIGH'
+                			then 1
+                		else 0
+                	end) as low_line_count
+                from
+                	orders,
+                	lineitem
+                where
+                	o_orderkey = l_orderkey
+                	and l_shipmode in ('RAIL', 'MAIL')
+                	and l_commitdate < l_receiptdate
+                	and l_shipdate < l_commitdate
+                	and l_receiptdate >= date '1994-01-01'
+                	and l_receiptdate < date '1994-01-01' + interval '1' year
+                group by
+                	l_shipmode
+                order by
+                	l_shipmode
+                limit 1;
 
-        // DATE is the first of January of a randomly selected year within [1993 .. 1997]
-        int year = rand.number(1993, 1997);
-        String date = String.format("%d-01-01", year);
+            """;
 
-        PreparedStatement stmt = this.getPreparedStatement(conn, query_stmt);
-        stmt.setString(1, shipMode1);
-        stmt.setString(2, shipMode2);
-        stmt.setDate(3, Date.valueOf(date));
-        stmt.setDate(4, Date.valueOf(date));
+        PreparedStatement stmt = this.getPreparedStatement(conn, new SQLStmt(q12));
         return stmt;
     }
 }

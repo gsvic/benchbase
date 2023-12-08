@@ -72,35 +72,50 @@ public class Q22 extends GenericQuery {
 
     @Override
     protected PreparedStatement getStatement(Connection conn, RandomGenerator rand, double scaleFactor) throws SQLException {
-        // I1 - I7 are randomly selected without repetition from the possible values
+        String q22 = """
 
+            select
+            	cntrycode,
+            	count(*) as numcust,
+            	sum(c_acctbal) as totacctbal
+            from
+            	(
+            		select
+            			substring(c_phone from 1 for 2) as cntrycode,
+            			c_acctbal
+            		from
+            			customer
+            		where
+            			substring(c_phone from 1 for 2) in
+            				('10', '14', '11', '30', '29', '21', '12')
+            			and c_acctbal > (
+            				select
+            					avg(c_acctbal)
+            				from
+            					customer
+            				where
+            					c_acctbal > 0.00
+            					and substring(c_phone from 1 for 2) in
+            						('10', '14', '11', '30', '29', '21', '12')
+            			)
+            			and not exists (
+            				select
+            					*
+            				from
+            					orders
+            				where
+            					o_custkey = c_custkey
+            			)
+            	) as custsale
+            group by
+            	cntrycode
+            order by
+            	cntrycode
+            limit 1;
+            """;
 
-        // We are given
-        //      Let i be an index into the list of strings Nations
-        //          (i.e., ALGERIA is 0, ARGENTINA is 1, etc., see Clause 4.2.3),
-        //      Let country_code be the sub-string representation of the number (i + 10)
-        // There are 25 nations, hence country_code ranges from [10, 34]
+        PreparedStatement stmt = this.getPreparedStatement(conn, new SQLStmt(q22));
 
-        Set<Integer> seen = new HashSet<>(7);
-        int[] codes = new int[7];
-        for (int i = 0; i < 7; i++) {
-            int num = rand.number(10, 34);
-
-            while (seen.contains(num)) {
-                num = rand.number(10, 34);
-            }
-
-            codes[i] = num;
-            seen.add(num);
-        }
-
-        PreparedStatement stmt = this.getPreparedStatement(conn, query_stmt);
-        for (int i = 0; i < 7; i++) {
-            stmt.setString(1 + i, String.valueOf(codes[i]));
-        }
-        for (int i = 0; i < 7; i++) {
-            stmt.setString(8 + i, String.valueOf(codes[i]));
-        }
         return stmt;
     }
 }

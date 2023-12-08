@@ -50,17 +50,29 @@ public class Q17 extends GenericQuery {
 
     @Override
     protected PreparedStatement getStatement(Connection conn, RandomGenerator rand, double scaleFactor) throws SQLException {
-        String brand = TPCHUtil.randomBrand(rand);
+        String q17 = """
+            select
+            	sum(l_extendedprice) / 7.0 as avg_yearly
+            from
+            	lineitem,
+            	part
+            where
+            	p_partkey = l_partkey
+            	and p_brand = 'Brand#22'
+            	and p_container = 'SM BAG'
+            	and l_quantity < (
+            		select
+            			0.2 * avg(l_quantity)
+            		from
+            			lineitem
+            		where
+            			l_partkey = p_partkey
+            	)
+            limit 1;
+            """;
 
-        // CONTAINER is randomly selected within the list of 2-syllable strings defined for Containers in Clause
-        // 4.2.2.13
-        String containerS1 = TPCHUtil.choice(TPCHConstants.CONTAINERS_S1, rand);
-        String containerS2 = TPCHUtil.choice(TPCHConstants.CONTAINERS_S2, rand);
-        String container = String.format("%s %s", containerS1, containerS2);
+        PreparedStatement stmt = this.getPreparedStatement(conn, new SQLStmt(q17));
 
-        PreparedStatement stmt = this.getPreparedStatement(conn, query_stmt);
-        stmt.setString(1, brand);
-        stmt.setString(2, container);
         return stmt;
     }
 }

@@ -96,6 +96,43 @@ public class Q15 extends GenericQuery {
 
     @Override
     protected PreparedStatement getStatement(Connection conn, RandomGenerator rand, double scaleFactor) throws SQLException {
-        return this.getPreparedStatement(conn, query_stmt);
+        String q15 = """
+
+            with revenue0 as (
+            	select
+            		l_suppkey as supplier_no,
+            		sum(l_extendedprice * (1 - l_discount)) as total_revenue
+            	from
+            		lineitem
+            	where
+            		l_shipdate >= date '1994-09-01'
+            		and l_shipdate < date '1994-09-01' + interval '3' month
+            	group by
+            		l_suppkey)
+
+
+            select
+            	s_suppkey,
+            	s_name,
+            	s_address,
+            	s_phone,
+            	total_revenue
+            from
+            	supplier,
+            	revenue0
+            where
+            	s_suppkey = supplier_no
+            	and total_revenue = (
+            		select
+            			max(total_revenue)
+            		from
+            			revenue0
+            	)
+            order by
+            	s_suppkey
+            limit 1;
+            """;
+
+        return this.getPreparedStatement(conn, new SQLStmt(q15));
     }
 }

@@ -66,11 +66,45 @@ public class Q18 extends GenericQuery {
 
     @Override
     protected PreparedStatement getStatement(Connection conn, RandomGenerator rand, double scaleFactor) throws SQLException {
-        // QUANTITY is randomly selected within [312..315]
-        int quantity = rand.number(312, 315);
+        String q18 = """
 
-        PreparedStatement stmt = this.getPreparedStatement(conn, query_stmt);
-        stmt.setInt(1, quantity);
+            select
+            	c_name,
+            	c_custkey,
+            	o_orderkey,
+            	o_orderdate,
+            	o_totalprice,
+            	sum(l_quantity)
+            from
+            	customer,
+            	orders,
+            	lineitem
+            where
+            	o_orderkey in (
+            		select
+            			l_orderkey
+            		from
+            			lineitem
+            		group by
+            			l_orderkey having
+            				sum(l_quantity) > 312
+            	)
+            	and c_custkey = o_custkey
+            	and o_orderkey = l_orderkey
+            group by
+            	c_name,
+            	c_custkey,
+            	o_orderkey,
+            	o_orderdate,
+            	o_totalprice
+            order by
+            	o_totalprice desc,
+            	o_orderdate
+            limit 1;
+
+            """;
+
+        PreparedStatement stmt = this.getPreparedStatement(conn, new SQLStmt(q18));
         return stmt;
     }
 }

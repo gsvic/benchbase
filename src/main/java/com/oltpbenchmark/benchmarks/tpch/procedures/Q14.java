@@ -50,14 +50,27 @@ public class Q14 extends GenericQuery {
 
     @Override
     protected PreparedStatement getStatement(Connection conn, RandomGenerator rand, double scaleFactor) throws SQLException {
-        // DATE is the first day of a month randomly selected from a random year within [1993 .. 1997]
-        int year = rand.number(1993, 1997);
-        int month = rand.number(1, 12);
-        String date = String.format("%d-%02d-01", year, month);
+        String q14 = """
 
-        PreparedStatement stmt = this.getPreparedStatement(conn, query_stmt);
-        stmt.setDate(1, Date.valueOf(date));
-        stmt.setDate(2, Date.valueOf(date));
+            select
+            	100.00 * sum(case
+            		when p_type like 'PROMO%'
+            			then l_extendedprice * (1 - l_discount)
+            		else 0
+            	end) / sum(l_extendedprice * (1 - l_discount)) as promo_revenue
+            from
+            	lineitem,
+            	part
+            where
+            	l_partkey = p_partkey
+            	and l_shipdate >= date '1994-07-01'
+            	and l_shipdate < date '1994-07-01' + interval '1' month
+            limit 1;
+
+            """;
+
+        PreparedStatement stmt = this.getPreparedStatement(conn, new SQLStmt(q14));
+
         return stmt;
     }
 }

@@ -56,16 +56,33 @@ public class Q13 extends GenericQuery {
 
     @Override
     protected PreparedStatement getStatement(Connection conn, RandomGenerator rand, double scaleFactor) throws SQLException {
-        // WORD1 is randomly selected from 4 possible values: special, pending, unusual, express
-        String word1 = TPCHUtil.choice(new String[]{"special", "pending", "unusual", "express"}, rand);
+        String q13 = """
 
-        // WORD2 is randomly selected from 4 possible values: packages, requests, accounts, deposits
-        String word2 = TPCHUtil.choice(new String[]{"packages", "requests", "accounts", "deposits"}, rand);
+            select
+            	c_count,
+            	count(*) as custdist
+            from
+            	(
+            		select
+            			c_custkey,
+            			count(o_orderkey)
+            		from
+            			customer left outer join orders on
+            				c_custkey = o_custkey
+            				and o_comment not like '%unusual%requests%'
+            		group by
+            			c_custkey
+            	) as c_orders (c_custkey, c_count)
+            group by
+            	c_count
+            order by
+            	custdist desc,
+            	c_count desc
+            limit 1;
 
-        String filter = "%" + word1 + "%" + word2 + "%";
+            """;
 
-        PreparedStatement stmt = this.getPreparedStatement(conn, query_stmt);
-        stmt.setString(1, filter);
+        PreparedStatement stmt = this.getPreparedStatement(conn, new SQLStmt(q13));
         return stmt;
     }
 }
